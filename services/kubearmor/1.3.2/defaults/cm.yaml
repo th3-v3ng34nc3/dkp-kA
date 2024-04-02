@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubearmor-1.3.2-defaults
+  namespace: ${releaseNamespace}
+data:
+  values.yaml: |-
+    autoDeploy: true
+    
+    kubearmorOperator:
+      name: kubearmor-operator
+      image:
+        repository: kubearmor/kubearmor-operator
+        tag: ""
+      imagePullPolicy: Always
+      
+    kubearmorConfig:
+      defaultCapabilitiesPosture: audit
+      defaultFilePosture: audit
+      defaultNetworkPosture: audit
+      defaultVisibility: process,network
