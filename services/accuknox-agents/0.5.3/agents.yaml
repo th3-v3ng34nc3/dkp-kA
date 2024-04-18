@@ -1,0 +1,28 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: accuknox-agents
+  namespace: ${releaseNamespace}
+spec:
+  chart:
+    spec:
+      chart: accuknox-agents
+      sourceRef:
+        kind: HelmRepository
+        name: accuknox-agents
+        namespace: ${releaseNamespace}
+      version: "v0.5.3"
+  interval: 15s
+  install:
+    remediation:
+      retries: 30
+    createNamespace: true
+  upgrade:
+    remediation:
+      retries: 30
+  releaseName: accuknox-agents 
+  valuesFrom:
+    - kind: ConfigMap
+      name: accuknox-agents-0.5.3-defaults
+  targetNamespace: ${releaseNamespace}

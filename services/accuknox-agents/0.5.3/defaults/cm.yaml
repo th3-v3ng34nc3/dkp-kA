@@ -1,0 +1,301 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: accuknox-agents-0.5.3-defaults
+  namespace: ${releaseNamespace}
+data:
+  values.yaml: |-
+  
+  ppsHost: ""
+
+  knoxGateway: ""
+
+  spireHost: ""
+
+  joinToken: ""
+
+  agentsOperator:
+  
+   tag: "v0.2.0"
+   image: accuknox/agents-operator
+
+  spireVars:
+    SPIRE_ENABLED: true
+
+  resources: {}
+
+  volumeMounts: []
+
+  volumes: []
+
+
+  sharedInformerAgent: 
+
+   auditWebhook:
+     enabled: false
+     port: 8080
+
+    tag: "v0.3.3"
+    image: "accuknox/shared-informer-agent"
+
+    resources: {}
+
+    volumeMounts: []
+
+   volumes: []
+
+
+  policyEnforcementAgent: 
+  
+   tag: "v0.3.3"
+   image: "accuknox/policy-enforcement-agent"
+
+   resources: {}
+
+   volumeMounts: []
+
+   volumes: []
+
+
+  feederService: 
+
+   tag: "v0.3.0"
+   image: "accuknox/feeder-service"
+
+   resources: {}
+
+   volumeMounts: []
+
+   volumes: []
+
+  discoveryEngineVars:
+    DISCOVERYENGINE_VERSION: "2"
+    DISCOVERYENGINE_ENABLED: "true"
+    DISCOVERYENGINE_PORT: "9089"
+
+  kubearmorVars:
+    KUBEARMOR_URL: "kubearmor.kube-system.svc.cluster.local"
+    KUBEARMOR_PORT: 32767
+    KUBEARMOR_ALERTS: false
+    KUBEARMOR_ENABLED: true
+    KUBEARMOR_LOGS: "sdf"
+
+  splunkVars:
+    SPLUNK_FEEDER_ENABLED: "false"
+    SPLUNK_FEEDER_URL: ""
+    SPLUNK_FEEDER_TOKEN: ""
+    SPLUNK_FEEDER_INDEX: ""
+    SPLUNK_FEEDER_SOURCE: ""
+    SPLUNK_FEEDER_SOURCE_TYPE: ""
+    SPLUNK_ALERTS_ENABLED: "false"
+    SPLUNK_LOGS_ENABLED: "false"
+
+  azureSentinelVars:
+    AZURE_SENTINEL_ENABLED: "false"
+    AZURE_SENTINEL_LOGS_ENABLED: "false"
+    AZURE_SENTINEL_ALERTS_ENABLED: "false"
+    AZURE_SENTINEL_URL: ""
+    AZURE_SENTINEL_GROUP_NAME: ""
+    AZURE_SENTINEL_GROUP_VALUE: ""
+
+  discoveryEngine:
+
+   tag: "v0.1.21"
+   imagebase: "accuknox/discovery-engine"
+
+  rabbitmq:
+    enabled: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+
+  summaryEngine:
+    enabled: true
+    resources: 
+      requests:
+        cpu: 100m
+        memory: 100Mi
+
+    appConfig:
+      watcher:
+        enabled: true
+        kubearmor-event-type:
+          logs: true
+          alerts: true
+        kubearmor-relay:
+          name: relay-1
+          enabled: false
+          url: ""
+          port: ""
+      summary-engine:
+        enabled: true
+        cron-interval: "0h01m0s"
+        threshold: 10000
+        file-aggregation: true
+        topic:
+          summary-event: "summary-v2" 
+        exclude-namespaces:
+          kubearmor: true   
+        exclude-events:
+          operation:
+            process: false
+            file: false
+            network: false
+            
+    kmuxConfig:
+      kmux:
+        sink:
+          stream: rabbitmq 
+      rabbitmq:
+        server: "localhost:5672"
+        exchange:
+          name: "dev2"
+          type: "direct"
+          durable: true
+          auto-delete: true
+
+  offloader:
+    enabled: false
+    resources: 
+      requests:
+        cpu: 100m
+        memory: 100Mi 
+
+    appConfig:
+      offloader:
+        summary:
+          enabled: true
+          topic: "summary-v2"
+          retention:
+            enabled: true
+            interval: 1 # Interval in days
+        policy:
+          enabled: true
+          topic: "policy-v1"
+          merge_policy: false
+          retention:
+            enabled: true
+            interval: 7 # Interval in days
+        server:
+          enabled: true
+          host: 0.0.0.0
+          port: 8090
+      database:
+        driver: sqlite
+        name:
+          policy-db: /Offloader/accuknox-policy.db
+          summary-db: /Offloader/accuknox-summary.db
+        credentials: local
+
+    kmuxConfig:
+      kmux:
+        source:
+          stream: rabbitmq
+      rabbitmq:
+        server: "localhost:5672"
+        exchange:
+          name: "dev2"
+          type: "direct"
+          durable: true
+          auto-delete: true
+        queue:
+          name: ""
+          durable: true
+          auto-delete: true
+
+  hardening: 
+    enabled: true
+    resources: 
+      requests:
+        cpu: 100m
+        memory: 100Mi
+    
+    appConfig:  
+      hardening:
+        enabled: true
+        cron-job-time-interval: "1h00m00s"
+        recommend-host-policy: true
+        template-version: "0.2.4"
+        topic: "policy-v1"
+        download-templates: false
+        delay-cron-job: "0h05m00s"
+        filter-enabled: false
+        exclude-namespaces:
+          kubearmor: true
+          kube-system: true 
+
+    kmuxConfig:
+      kmux: 
+        sink:
+          stream: rabbitmq
+      rabbitmq:
+        server: "localhost:5672"
+        exchange:
+          name: "dev2"
+          type: "direct"
+          durable: true
+          auto-delete: true
+        queue:
+          name: ""
+          durable: true
+          auto-delete: true
+
+  discover: 
+    enabled: true
+    resources: 
+      requests:
+        cpu: 200m
+        memory: 200Mi
+    
+    appConfig:  
+      discover:
+        consumer:
+          buffer-limit:
+            system: 1000
+            network: 100
+          time-limit: 1
+          topic: "summary-v2"
+        processor:
+          spu: 1
+          npu: 1
+          cores: 50
+          delay-cron-job: "0h03m00s"
+          cron-job-interval: "0h05m00s"
+        sink:
+          channel-size: 100
+          topic: "policy-v1"
+        policy-client:
+          server: 127.0.0.1:8090
+        ruleConfig:
+          rules: "process,network"
+      logging:
+        level: info
+
+    kmuxConfig:
+      kmux:
+        source:
+          stream: rabbitmq
+        sink:
+          stream: rabbitmq
+      rabbitmq:
+        server: "127.0.0.1:5672"
+        exchange:
+          name: "dev2"
+          type: "direct"
+          durable: true
+          auto-delete: true
+        queue:
+          name: ""
+          durable: true
+          auto-delete: true
+                   
+
+  install:
+   onlyFeeder: false
+
+
+  rabbitmq:
+   tag: 3.12.2-management
+   image: rabbitmq
